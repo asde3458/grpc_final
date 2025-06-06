@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package chat;
+
+// Chat service definition
+service ChatService {
+  // Bidirectional streaming RPC for chat messages
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage) {}
+  
+  // User authentication
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  
+  // Group management
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse) {}
+  rpc JoinGroup(JoinGroupRequest) returns (JoinGroupResponse) {}
+  rpc LeaveGroup(LeaveGroupRequest) returns (LeaveGroupResponse) {}
+  rpc GetUserGroups(GetUserGroupsRequest) returns (GetUserGroupsResponse) {}
+  rpc GetGroupHistory(GetGroupHistoryRequest) returns (GetGroupHistoryResponse) {}
+  rpc InviteUser(InviteUserRequest) returns (InviteUserResponse) {}
+}
+
+// Message types
+message ChatMessage {
+  string sender = 1;
+  string content = 2;
+  string timestamp = 3;
+  MessageType type = 4;
+  string recipient = 5;  // For direct messages
+  string group_id = 6;   // For group messages
+}
+
+enum MessageType {
+  DIRECT = 0;
+  GROUP = 1;
+  HEARTBEAT = 2;
+}
+
+// Authentication messages
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Group management messages
+message CreateGroupRequest {
+  string group_name = 1;
+  string creator = 2;
+}
+
+message CreateGroupResponse {
+  bool success = 1;
+  string group_id = 2;
+  string message = 3;
+}
+
+message JoinGroupRequest {
+  string group_id = 1;
+  string username = 2;
+}
+
+message JoinGroupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LeaveGroupRequest {
+  string group_id = 1;
+  string username = 2;
+}
+
+message LeaveGroupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetUserGroupsRequest {
+  string username = 1;
+}
+
+message GroupInfo {
+  string group_id = 1;
+  string group_name = 2;
+}
+
+message GetUserGroupsResponse {
+  bool success = 1;
+  repeated GroupInfo groups = 2;
+  string message = 3;
+}
+
+message GetGroupHistoryRequest {
+  string group_id = 1;
+}
+
+message MessageInfo {
+  string content = 1;
+  string sender = 2;
+  int64 timestamp = 3;
+}
+
+message GetGroupHistoryResponse {
+  bool success = 1;
+  repeated MessageInfo messages = 2;
+  string message = 3;
+}
+
+message InviteUserRequest {
+  string group_id = 1;
+  string inviter = 2;
+  string invitee = 3;
+}
+
+message InviteUserResponse {
+  bool success = 1;
+  string message = 2;
+} 
