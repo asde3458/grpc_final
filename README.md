@@ -91,8 +91,6 @@ python client.py
    - Option 6: Exit the application
 
 ### Message Format
-
-- Direct messages: Messages are sent directly to the specified user
 - Group messages: Messages are sent to all members of the specified group
 
 ## Security Notes
