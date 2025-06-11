@@ -1,132 +1,166 @@
+// Khai báo sử dụng phiên bản proto3 - phiên bản mới nhất và đơn giản nhất của Protocol Buffers
 syntax = "proto3";
 
+// Định nghĩa namespace cho các message và service để tránh xung đột tên
 package chat;
 
-// Chat service definition
+// ChatService định nghĩa tất cả các phương thức RPC mà server cung cấp
 service ChatService {
-  // Bidirectional streaming RPC for chat messages
+  // Chat: Phương thức streaming 2 chiều cho phép client và server liên tục trao đổi tin nhắn
+  // Client có thể gửi nhiều tin nhắn (stream) và nhận nhiều tin nhắn (stream) cùng lúc
   rpc Chat(stream ChatMessage) returns (stream ChatMessage) {}
   
-  // User authentication
+  // Các phương thức xác thực người dùng
+  // Register: Đăng ký tài khoản mới
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  // Login: Đăng nhập vào hệ thống
   rpc Login(LoginRequest) returns (LoginResponse) {}
   
-  // Group management
+  // Các phương thức quản lý nhóm chat
+  // CreateGroup: Tạo một nhóm chat mới
   rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse) {}
+  // JoinGroup: Tham gia vào một nhóm chat
   rpc JoinGroup(JoinGroupRequest) returns (JoinGroupResponse) {}
+  // LeaveGroup: Rời khỏi một nhóm chat
   rpc LeaveGroup(LeaveGroupRequest) returns (LeaveGroupResponse) {}
+  // GetUserGroups: Lấy danh sách các nhóm của người dùng
   rpc GetUserGroups(GetUserGroupsRequest) returns (GetUserGroupsResponse) {}
+  // GetGroupHistory: Lấy lịch sử chat của một nhóm
   rpc GetGroupHistory(GetGroupHistoryRequest) returns (GetGroupHistoryResponse) {}
+  // InviteUser: Mời người dùng khác vào nhóm
   rpc InviteUser(InviteUserRequest) returns (InviteUserResponse) {}
 }
 
-// Message types
+// Message types - Định nghĩa cấu trúc dữ liệu cho các tin nhắn
+
+// ChatMessage: Cấu trúc của một tin nhắn trong hệ thống
 message ChatMessage {
-  string sender = 1;
-  string content = 2;
-  string timestamp = 3;
-  MessageType type = 4;
-  string recipient = 5;  // For direct messages
-  string group_id = 6;   // For group messages
+  string sender = 1;      // Tên người gửi tin nhắn
+  string content = 2;     // Nội dung tin nhắn
+  string timestamp = 3;   // Thời gian gửi tin nhắn
+  MessageType type = 4;   // Loại tin nhắn (trực tiếp/nhóm/heartbeat)
+  string recipient = 5;   // Người nhận (chỉ dùng cho tin nhắn trực tiếp)
+  string group_id = 6;    // ID của nhóm (chỉ dùng cho tin nhắn nhóm)
 }
 
+// MessageType: Enum định nghĩa các loại tin nhắn
 enum MessageType {
-  DIRECT = 0;
-  GROUP = 1;
-  HEARTBEAT = 2;
+  DIRECT = 0;     // Tin nhắn trực tiếp giữa 2 người dùng
+  GROUP = 1;      // Tin nhắn trong nhóm chat
+  HEARTBEAT = 2;  // Tin nhắn giữ kết nối (để duy trì phiên chat)
 }
 
-// Authentication messages
+// Authentication messages - Các message liên quan đến xác thực
+
+// RegisterRequest: Yêu cầu đăng ký tài khoản mới
 message RegisterRequest {
-  string username = 1;
-  string password = 2;
+  string username = 1;  // Tên đăng nhập
+  string password = 2;  // Mật khẩu
 }
 
+// RegisterResponse: Phản hồi cho yêu cầu đăng ký
 message RegisterResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;     // Trạng thái đăng ký (thành công/thất bại)
+  string message = 2;   // Thông báo kết quả
 }
 
+// LoginRequest: Yêu cầu đăng nhập
 message LoginRequest {
-  string username = 1;
-  string password = 2;
+  string username = 1;  // Tên đăng nhập
+  string password = 2;  // Mật khẩu
 }
 
+// LoginResponse: Phản hồi cho yêu cầu đăng nhập
 message LoginResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;     // Trạng thái đăng nhập (thành công/thất bại)
+  string message = 2;   // Thông báo kết quả
 }
 
-// Group management messages
+// Group management messages - Các message liên quan đến quản lý nhóm
+
+// CreateGroupRequest: Yêu cầu tạo nhóm mới
 message CreateGroupRequest {
-  string group_name = 1;
-  string creator = 2;
+  string group_name = 1;  // Tên nhóm
+  string creator = 2;     // Người tạo nhóm
 }
 
+// CreateGroupResponse: Phản hồi cho yêu cầu tạo nhóm
 message CreateGroupResponse {
-  bool success = 1;
-  string group_id = 2;
-  string message = 3;
+  bool success = 1;       // Trạng thái tạo nhóm (thành công/thất bại)
+  string group_id = 2;    // ID của nhóm mới tạo
+  string message = 3;     // Thông báo kết quả
 }
 
+// JoinGroupRequest: Yêu cầu tham gia nhóm
 message JoinGroupRequest {
-  string group_id = 1;
-  string username = 2;
+  string group_id = 1;    // ID của nhóm muốn tham gia
+  string username = 2;    // Tên người dùng muốn tham gia
 }
 
+// JoinGroupResponse: Phản hồi cho yêu cầu tham gia nhóm
 message JoinGroupResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;       // Trạng thái tham gia (thành công/thất bại)
+  string message = 2;     // Thông báo kết quả
 }
 
+// LeaveGroupRequest: Yêu cầu rời nhóm
 message LeaveGroupRequest {
-  string group_id = 1;
-  string username = 2;
+  string group_id = 1;    // ID của nhóm muốn rời
+  string username = 2;    // Tên người dùng muốn rời nhóm
 }
 
+// LeaveGroupResponse: Phản hồi cho yêu cầu rời nhóm
 message LeaveGroupResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;       // Trạng thái rời nhóm (thành công/thất bại)
+  string message = 2;     // Thông báo kết quả
 }
 
+// GetUserGroupsRequest: Yêu cầu lấy danh sách nhóm của người dùng
 message GetUserGroupsRequest {
-  string username = 1;
+  string username = 1;    // Tên người dùng cần lấy danh sách nhóm
 }
 
+// GroupInfo: Thông tin cơ bản của một nhóm
 message GroupInfo {
-  string group_id = 1;
-  string group_name = 2;
+  string group_id = 1;    // ID của nhóm
+  string group_name = 2;  // Tên nhóm
 }
 
+// GetUserGroupsResponse: Phản hồi cho yêu cầu lấy danh sách nhóm
 message GetUserGroupsResponse {
-  bool success = 1;
-  repeated GroupInfo groups = 2;
-  string message = 3;
+  bool success = 1;                    // Trạng thái lấy danh sách (thành công/thất bại)
+  repeated GroupInfo groups = 2;       // Danh sách các nhóm (repeated = array/list)
+  string message = 3;                  // Thông báo kết quả
 }
 
+// GetGroupHistoryRequest: Yêu cầu lấy lịch sử chat của nhóm
 message GetGroupHistoryRequest {
-  string group_id = 1;
+  string group_id = 1;    // ID của nhóm cần lấy lịch sử
 }
 
+// MessageInfo: Thông tin của một tin nhắn trong lịch sử
 message MessageInfo {
-  string content = 1;
-  string sender = 2;
-  int64 timestamp = 3;
+  string content = 1;     // Nội dung tin nhắn
+  string sender = 2;      // Người gửi
+  int64 timestamp = 3;    // Thời gian gửi (dạng Unix timestamp)
 }
 
+// GetGroupHistoryResponse: Phản hồi cho yêu cầu lấy lịch sử chat
 message GetGroupHistoryResponse {
-  bool success = 1;
-  repeated MessageInfo messages = 2;
-  string message = 3;
+  bool success = 1;                      // Trạng thái lấy lịch sử (thành công/thất bại)
+  repeated MessageInfo messages = 2;     // Danh sách các tin nhắn
+  string message = 3;                    // Thông báo kết quả
 }
 
+// InviteUserRequest: Yêu cầu mời người dùng vào nhóm
 message InviteUserRequest {
-  string group_id = 1;
-  string inviter = 2;
-  string invitee = 3;
+  string group_id = 1;    // ID của nhóm
+  string inviter = 2;     // Người mời
+  string invitee = 3;     // Người được mời
 }
 
+// InviteUserResponse: Phản hồi cho yêu cầu mời người dùng
 message InviteUserResponse {
-  bool success = 1;
-  string message = 2;
+  bool success = 1;       // Trạng thái mời (thành công/thất bại)
+  string message = 2;     // Thông báo kết quả
 } 

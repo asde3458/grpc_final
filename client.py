@@ -305,17 +305,39 @@ class ChatClient:
         try:
             print(f"Starting message receiver for {username}")
             for message in self.stub.Chat(self.generate_messages(username)):
-                print(f"Received message: {message.content} from {message.sender}")
-                # Luôn xử lý System message
-                if message.sender == "System":
-                    self.window.after_idle(self.display_message, message)
-                elif message.content:
-                    # Chỉ hiển thị message group nếu đúng group đang chọn
-                    if message.type == chat_pb2.GROUP and str(message.group_id) == str(self.current_group):
-                        self.window.after_idle(self.display_message, message)
-                        print(f"Displaying message in chat window: {message.content}")
+                try:
+                    print(f"Received message: {message.content} from {message.sender}")
+                    
+                    # Xử lý tin nhắn hệ thống
+                    if message.sender == "System":
+                        if message.content == "Connected to chat server":
+                            print("Connected to chat server")
+                            continue
+                            
+                        if message.content == "UPDATE_GROUPS":
+                            print("Updating groups list")
+                            self.window.after(100, self.load_user_groups)
+                            continue
+                    
+                    # Xử lý tin nhắn thông thường
+                    if message.content:
+                        if message.type == chat_pb2.GROUP:
+                            # Nếu là tin nhắn từ group hiện tại
+                            if str(message.group_id) == str(self.current_group):
+                                self.window.after_idle(self.display_message, message)
+                                print(f"Displaying message in chat window: {message.content}")
+                            # Nếu là tin nhắn hệ thống về thay đổi group
+                            elif message.sender == "System" and ("invited to group" in message.content or "joined the group" in message.content):
+                                self.window.after_idle(self.display_message, message)
+                                self.window.after(100, self.load_user_groups)
+                except Exception as e:
+                    print(f"Error processing received message: {e}")
+                    
         except Exception as e:
-            print(f"Error receiving messages: {e}")
+            print(f"Error in message receiver: {e}")
+            if "Stream removed" not in str(e):  # Ignore normal stream closure
+                messagebox.showerror("Error", f"Connection error: {str(e)}\nTrying to reconnect...")
+                self.window.after(1000, self.reconnect)  # Try to reconnect after 1 second
             self.is_running = False
 
     def generate_messages(self, username):
@@ -344,15 +366,32 @@ class ChatClient:
 
     def load_user_groups(self):
         try:
+            print("Loading user groups...")
             response = self.stub.GetUserGroups(chat_pb2.GetUserGroupsRequest(
                 username=self.username_var.get()
             ))
             if response.success:
+                # Lưu lại group đang chọn
+                current_selection = None
+                if self.group_list.curselection():
+                    current_selection = self.group_list.get(self.group_list.curselection())
+
                 self.group_list.delete(0, tk.END)
                 self.user_groups.clear()
                 for group in response.groups:
                     self.user_groups[group.group_id] = group.group_name
                     self.group_list.insert(tk.END, group.group_name)
+                
+                # Khôi phục selection nếu group vẫn còn tồn tại
+                if current_selection:
+                    try:
+                        idx = list(self.user_groups.values()).index(current_selection)
+                        self.group_list.selection_set(idx)
+                        self.group_list.see(idx)
+                    except ValueError:
+                        pass
+            else:
+                print(f"Error loading groups: {response.message}")
         except Exception as e:
             print(f"Error loading groups: {e}")
 
@@ -504,15 +543,32 @@ class ChatClient:
 
     def display_message(self, message):
         try:
-            # Luôn reload nhóm nếu là System message
+            self.message_display.config(state=tk.NORMAL)
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            
+            # Xử lý tin nhắn hệ thống
             if message.sender == "System":
-                self.load_user_groups()
-                return
-
-            # Chỉ hiển thị message group nếu đúng group đang chọn
-            if message.type == chat_pb2.GROUP and str(message.group_id) == str(self.current_group):
-                self.message_display.config(state=tk.NORMAL)
-                timestamp = datetime.now().strftime("%H:%M:%S")
+                # Kiểm tra nếu là tin nhắn cập nhật danh sách group
+                if message.content == "UPDATE_GROUPS":
+                    self.window.after(100, self.load_user_groups)
+                    return
+                
+                # Hiển thị tin nhắn hệ thống thông thường
+                self.message_display.insert(tk.END, f"[{timestamp}] ", "timestamp")
+                self.message_display.insert(tk.END, f"System: ", "system")
+                self.message_display.insert(tk.END, f"{message.content}\n", "system_content")
+                self.message_display.tag_configure("timestamp", foreground="#666666")
+                self.message_display.tag_configure("system", foreground="#FF0000", font=("Helvetica", 10, "bold"))
+                self.message_display.tag_configure("system_content", foreground="#FF0000")
+                self.message_display.see(tk.END)
+                self.message_display.update_idletasks()
+                
+                # Nếu tin nhắn chứa thông tin về group mới, cập nhật danh sách
+                if "invited to group" in message.content or "joined the group" in message.content:
+                    self.window.after(100, self.load_user_groups)
+            
+            # Hiển thị tin nhắn nhóm
+            elif message.type == chat_pb2.GROUP and str(message.group_id) == str(self.current_group):
                 self.message_display.insert(tk.END, f"[{timestamp}] ", "timestamp")
                 self.message_display.insert(tk.END, f"{message.sender}: ", "sender")
                 self.message_display.insert(tk.END, f"{message.content}\n", "content")
@@ -521,7 +577,8 @@ class ChatClient:
                 self.message_display.tag_configure("content", foreground="#000000")
                 self.message_display.see(tk.END)
                 self.message_display.update_idletasks()
-                self.message_display.config(state=tk.DISABLED)
+            
+            self.message_display.config(state=tk.DISABLED)
         except Exception as e:
             print(f"Error displaying message: {e}")
 
@@ -667,6 +724,15 @@ class ChatClient:
         except Exception as e:
             print(f"Error during sign out: {e}")
             messagebox.showerror("Error", f"Error during sign out: {str(e)}")
+
+    def reconnect(self):
+        try:
+            if not self.is_running:
+                print("Attempting to reconnect...")
+                self.start_chat(self.username_var.get())
+        except Exception as e:
+            print(f"Error reconnecting: {e}")
+            self.window.after(1000, self.reconnect)  # Try again after 1 second
 
     def run(self):
         self.window.mainloop()
