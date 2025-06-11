@@ -91,8 +91,6 @@ python client.py
    - Option 6: Exit the application
 
 ### Message Format
-
-- Direct messages: Messages are sent directly to the specified user
 - Group messages: Messages are sent to all members of the specified group
 
 ## Security Notes
@@ -108,21 +106,3 @@ The system includes basic error handling for:
 - Non-existent users
 - Group management errors
 - Connection issues
-
-## Development
-
-### Virtual Environment
-
-The project uses a virtual environment to manage dependencies. This ensures that:
-- Dependencies are isolated from other Python projects
-- Version conflicts are avoided
-- The project can be easily reproduced on other machines
-
-To deactivate the virtual environment when you're done:
-```bash
-deactivate
-```
-
-## Contributing
-
-Feel free to submit issues and enhancement requests! 
